@@ -1,0 +1,11 @@
+name: safe-customer-share
+version: "1.0"
+default_action: report
+rules:
+  email: mask
+  phone: mask
+  person_name: mask
+  ip_address: hash
+  government_id: quarantine
+  payment_card: quarantine
+  credential: block

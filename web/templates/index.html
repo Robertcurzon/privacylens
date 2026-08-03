@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="PrivacyLens local-first sensitive-data discovery and sanitization.">
+    <title>PrivacyLens | Sensitive Data Control</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <div>
+          <p class="eyebrow">LOCAL-FIRST DATA PRIVACY</p>
+          <h1>PrivacyLens</h1>
+          <p class="lede">Find sensitive data, apply explicit policy, and produce safer datasets without exposing raw values in audit reports.</p>
+        </div>
+        <a class="api-link" href="/api/runs">JSON API</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="scan-band" aria-labelledby="scan-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">NEW SCAN</p><h2 id="scan-title">Inspect a data file</h2></div>
+          <p>CSV, Parquet, JSON, or JSONL up to 25 MB. Raw uploads are deleted immediately after in-memory analysis.</p>
+        </div>
+        <form method="post" action="/analyze" enctype="multipart/form-data" id="scan-form">
+          <label><span>Privacy mode</span>
+            <select name="mode">
+              <option value="audit">Audit only</option>
+              <option value="sanitize">Sanitize for sharing</option>
+              <option value="strict">Block on any finding</option>
+            </select>
+          </label>
+          <label><span>Data file</span><input type="file" name="data_file" accept=".csv,.parquet,.json,.jsonl" required></label>
+          <button type="submit" id="scan-button">Run privacy scan</button>
+        </form>
+      </section>
+
+      {% if selected %}
+      {% set manifest = selected.manifest %}
+      {% set scan = selected.scan %}
+      <section class="run-head">
+        <div>
+          <div class="status-row"><span class="risk risk-{{ scan.risk_level }}">{{ scan.risk_level | upper }}</span><code>{{ manifest.run_id }}</code></div>
+          <h2>{{ manifest.source_name }}</h2>
+          <p>{{ manifest.policy | replace('_', ' ') | title }} policy / {{ manifest.status }}</p>
+        </div>
+        <label class="history"><span>Run history</span>
+          <select onchange="window.location='/?run=' + this.value">
+            {% for run in runs %}<option value="{{ run.run_id }}" {% if run.run_id == manifest.run_id %}selected{% endif %}>{{ run.created_at[:16] | replace('T', ' ') }} | {{ run.source_name }} | {{ run.risk_level }}</option>{% endfor %}
+          </select>
+        </label>
+      </section>
+
+      <section class="metrics" aria-label="Privacy scan summary">
+        <article><p>Risk score</p><strong>{{ scan.risk_score }}</strong><span>{{ scan.risk_level }} exposure</span></article>
+        <article><p>Findings</p><strong>{{ scan.findings | length }}</strong><span>{{ scan.category_counts | length }} categories</span></article>
+        <article><p>Coverage</p><strong>{{ scan.cells_scanned }}</strong><span>{{ scan.row_count }} rows / {{ scan.column_count }} columns</span></article>
+        <article><p>Critical</p><strong>{{ selected.severity_counts.get('critical', 0) }}</strong><span>policy-significant findings</span></article>
+      </section>
+
+      <section class="trace" aria-labelledby="trace-title">
+        <div class="section-heading compact"><div><p class="eyebrow">CONTROL TRACE</p><h2 id="trace-title">How the file was handled</h2></div></div>
+        <div class="trace-grid">
+          <div><span>01</span><strong>Ephemeral ingest</strong><small>{{ scan.row_count }} rows loaded</small></div>
+          <b>&gt;</b><div><span>02</span><strong>Pattern scan</strong><small>checksums + deterministic regex</small></div>
+          <b>&gt;</b><div><span>03</span><strong>Semantic scan</strong><small>column-aware detection</small></div>
+          <b>&gt;</b><div><span>04</span><strong>Policy decision</strong><small>{{ manifest.status }}</small></div>
+          <b>&gt;</b><div><span>05</span><strong>Raw upload deleted</strong><small>masked evidence retained</small></div>
+        </div>
+      </section>
+
+      <section class="inventory two-column">
+        <div>
+          <div class="section-heading compact"><div><p class="eyebrow">INVENTORY</p><h2>Sensitive categories</h2></div></div>
+          <div class="bar-list">
+            {% for category, count in scan.category_counts.items() %}
+            <div class="bar-row"><span>{{ category | replace('_', ' ') }}</span><div><i style="width: {{ ((count / (scan.findings | length)) * 100) | round }}%"></i></div><strong>{{ count }}</strong></div>
+            {% else %}<p class="empty">No sensitive categories detected.</p>{% endfor %}
+          </div>
+        </div>
+        <div>
+          <div class="section-heading compact"><div><p class="eyebrow">POLICY</p><h2>{{ selected.policy.name }}</h2></div></div>
+          <div class="policy-list">
+            <p><span>Default</span><strong>{{ selected.policy.default_action }}</strong></p>
+            {% for rule in selected.policy.rules %}<p><span>{{ rule.category | replace('_', ' ') }}</span><strong class="action action-{{ rule.action }}">{{ rule.action }}</strong></p>{% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="findings" aria-labelledby="findings-title">
+        <div class="section-heading compact">
+          <div><p class="eyebrow">MASKED EVIDENCE</p><h2 id="findings-title">Detected locations</h2></div>
+          <div class="downloads"><a href="/artifacts/{{ manifest.run_id }}/{{ manifest.artifacts.report }}">JSON report</a><a href="/artifacts/{{ manifest.run_id }}/{{ manifest.artifacts.html_report }}">HTML report</a>{% if manifest.artifacts.sanitized %}<a href="/artifacts/{{ manifest.run_id }}/{{ manifest.artifacts.sanitized }}">Sanitized data</a>{% endif %}</div>
+        </div>
+        <p class="privacy-notice">Raw matched values are excluded. Fingerprints are HMAC-based and previews reveal only bounded context.</p>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Severity</th><th>Category</th><th>Column</th><th>Row</th><th>Detector</th><th>Masked preview</th><th>Fingerprint</th></tr></thead>
+          <tbody>{% for item in selected.top_findings %}<tr><td><span class="severity severity-{{ item.severity }}">{{ item.severity }}</span></td><td>{{ item.category | replace('_', ' ') }}</td><td><code>{{ item.column }}</code></td><td>{{ item.row_number }}</td><td>{{ item.detector | replace('_', ' ') }}</td><td>{{ item.masked_preview }}</td><td><code>{{ item.fingerprint }}</code></td></tr>{% else %}<tr><td colspan="7" class="empty">No findings.</td></tr>{% endfor %}</tbody>
+        </table></div>
+      </section>
+      {% endif %}
+    </main>
+    <footer><p>No LLM is used for detection. No raw detected values are stored in PrivacyLens reports.</p><a href="/health">Service health</a></footer>
+    <script>
+      document.getElementById('scan-form').addEventListener('submit', function () {
+        const button = document.getElementById('scan-button'); button.disabled = true; button.textContent = 'Scanning locally...';
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+customer_id,full_name,email,phone,ip_address,ssn,card_number,notes,api_key
+C-1001,Avery Stone,avery.stone@example.com,415-555-0101,192.0.2.14,078-05-1120,4242 4242 4242 4242,Requested an annual-plan quote,
+C-1002,Morgan Lee,morgan.lee@example.org,212-555-0198,198.51.100.22,,4000 0566 5566 5556,Asked for a security review,
+C-1003,Jordan Rivera,jordan.rivera@example.net,646-555-0117,203.0.113.8,,,Support escalation includes token sk-demoTokenValue123456789012345,sk-demoTokenValue123456789012345
+C-1004,Casey Brooks,casey.brooks@example.com,202-555-0144,192.0.2.51,,,Renewal discussion,
+C-1005,Taylor Chen,taylor.chen@example.org,303-555-0129,198.51.100.90,,,Product research participant,
