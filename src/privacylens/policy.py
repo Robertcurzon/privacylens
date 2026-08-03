@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-
 VALID_ACTIONS = {"allow", "report", "mask", "hash", "drop", "quarantine", "block"}
 
 
@@ -59,7 +58,7 @@ class PrivacyPolicy:
         }
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "PrivacyPolicy":
+    def from_dict(cls, payload: dict[str, Any]) -> PrivacyPolicy:
         """Create and validate a policy from JSON/YAML data."""
 
         raw_rules = payload.get("rules", [])

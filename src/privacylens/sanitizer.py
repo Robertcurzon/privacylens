@@ -13,7 +13,6 @@ import pandas as pd
 from privacylens.models import PolicyDecision, SanitizationResult, ScanReport
 from privacylens.policy import PrivacyPolicy
 
-
 ACTION_PRIORITY = {
     "allow": 0,
     "report": 1,

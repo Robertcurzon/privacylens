@@ -13,7 +13,6 @@ import pandas as pd
 from privacylens.detectors import Detection, column_hint, detect_value
 from privacylens.models import Finding, ScanReport
 
-
 SEVERITY_WEIGHT = {"low": 1, "medium": 3, "high": 7, "critical": 12}
 
 

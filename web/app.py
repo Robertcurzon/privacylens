@@ -25,7 +25,6 @@ from privacylens.sanitizer import sanitize_frame
 from privacylens.scanner import scan_frame
 from privacylens.store import RunStore
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RUNTIME_ROOT = Path(os.getenv("PRIVACYLENS_DATA_DIR", PROJECT_ROOT / "data/runtime"))
 STORE_ROOT = RUNTIME_ROOT / "runs"
